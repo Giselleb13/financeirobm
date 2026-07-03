@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Financeiro CEO"/>
+<meta name="theme-color" content="#1A3A5C"/>
+<title>Financeiro CEO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-firestore-compat.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F4F8;color:#1A2B3C;padding-bottom:90px}
+
+.header{background:linear-gradient(135deg,#1A3A5C 0%,#1565C0 70%,#1976D2 100%);color:#fff;padding:48px 18px 0;position:sticky;top:0;z-index:50;box-shadow:0 4px 20px #1565C044}
+.header-eyebrow{font-size:10px;letter-spacing:3px;opacity:.7;text-transform:uppercase}
+.header-title{font-size:21px;font-weight:700}
+.header-sub{font-size:11px;opacity:.65;margin-top:2px;margin-bottom:12px}
+.nav-scroll{display:flex;overflow-x:auto;gap:6px;padding-bottom:0;scrollbar-width:none}
+.nav-scroll::-webkit-scrollbar{display:none}
+.nav-btn{flex:0 0 auto;background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.45);border-radius:20px;padding:6px 13px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s}
+.nav-btn.active{background:#fff;color:#1565C0;border-color:#fff}
+
+/* LOGIN */
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;padding:30px 24px;text-align:center}
+.login-icon{font-size:54px;margin-bottom:16px}
+.login-title{font-size:22px;font-weight:700;color:#1A3A5C;margin-bottom:6px}
+.login-sub{font-size:14px;color:#888;margin-bottom:28px}
+.login-input{width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E3EAF2;font-size:15px;outline:none;margin-bottom:10px;font-family:inherit}
+.login-input:focus{border-color:#1565C0}
+.login-btn{width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#1565C0,#1976D2);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px}
+.login-hint{font-size:12px;color:#aaa;margin-top:8px}
+
+/* SYNC BAR */
+.sync-bar{background:#E3F2FD;border-radius:10px;padding:9px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-size:11px;color:#1565C0}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#4CAF50;flex-shrink:0;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sync-dot.offline{background:#FF9800;animation:none}
+
+.section{padding:14px 14px 0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.stat-card{background:#fff;border-radius:14px;padding:13px 10px;box-shadow:0 2px 10px #00000009;text-align:center}
+.stat-num{font-size:17px;font-weight:700}
+.stat-label{font-size:10px;color:#999;margin-top:2px}
+.card{background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 10px #00000009;margin-bottom:12px}
+.card-title{font-weight:700;font-size:13px;color:#1565C0;margin-bottom:10px}
+
+.month-sel{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.month-nav{background:none;border:1.5px solid #E3EAF2;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:#1565C0}
+.month-label{font-size:15px;font-weight:700;color:#1A2B3C}
+
+.cat-bar-row{margin-bottom:9px}
+.cat-bar-meta{display:flex;justify-content:space-between;margin-bottom:3px}
+.cat-bar-name{font-size:12px;color:#444;font-weight:500}
+.cat-bar-val{font-size:12px;color:#666;font-weight:600}
+.cat-bar-bg{background:#EEF2F7;border-radius:6px;height:6px;overflow:hidden}
+.cat-bar-fill{height:100%;border-radius:6px;transition:width .5s}
+
+.lancamento-item{display:flex;align-items:flex-start;gap:9px;padding:10px 0;border-bottom:1px solid #F0F4F8}
+.lancamento-item:last-child{border-bottom:none}
+.lanc-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.lanc-body{flex:1;min-width:0}
+.lanc-desc{font-size:13px;font-weight:600;word-break:break-word}
+.lanc-meta{font-size:11px;color:#888;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.lanc-tag{font-size:10px;border-radius:6px;padding:2px 6px;font-weight:600}
+.lanc-val{text-align:right;flex-shrink:0}
+.lanc-val-num{font-size:13px;font-weight:700}
+
+.status-pago{color:#2E7D32;background:#E8F5E9}
+.status-pendente{color:#E65100;background:#FFF3E0}
+.status-vencido{color:#B71C1C;background:#FFEBEE}
+.status-recebido{color:#1565C0;background:#E3F2FD}
+
+.promotora-card{background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 10px #00000009;margin-bottom:10px;border-left:4px solid #1565C0}
+.promotora-nome{font-size:15px;font-weight:700;color:#1A2B3C}
+.pgto-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #F0F4F8}
+.pgto-row:last-child{border-bottom:none}
+.check-box{width:20px;height:20px;border-radius:5px;border:2px solid #1565C0;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;flex-shrink:0;transition:all .2s}
+.check-box.checked{background:#1565C0}
+.pgto-label{font-size:12px;flex:1}
+.pgto-label.done{text-decoration:line-through;color:#bbb}
+.pgto-val{font-size:12px;font-weight:700;color:#1565C0}
+
+.dre-linha{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F0F4F8}
+.dre-linha:last-child{border-bottom:none}
+.dre-linha.total{background:#F0F4F8;border-radius:8px;padding:10px;margin-top:6px;border:none}
+.dre-section-title{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#999;margin:10px 0 3px;font-weight:700}
+
+.fab{position:fixed;bottom:22px;right:18px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#1976D2);color:#fff;border:none;font-size:25px;cursor:pointer;box-shadow:0 6px 20px #1565C055;display:flex;align-items:center;justify-content:center;z-index:100}
+.fab:active{transform:scale(.92)}
+
+.modal-overlay{position:fixed;inset:0;background:#00000060;z-index:200;display:flex;align-items:flex-end}
+.modal-sheet{background:#fff;width:100%;border-radius:20px 20px 0 0;padding:20px 16px 34px;max-height:93vh;overflow-y:auto}
+.modal-title{font-weight:700;font-size:16px;margin-bottom:14px;color:#1565C0}
+.form-label{font-size:11px;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+.form-group{margin-bottom:11px}
+.form-input,.form-select,.form-textarea{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #E3EAF2;font-size:14px;outline:none;font-family:inherit;background:#fff;color:#1A2B3C;-webkit-appearance:none}
+.form-textarea{resize:none}
+.form-input:focus,.form-select:focus{border-color:#1565C0}
+.btn-row{display:flex;gap:8px;margin-top:8px}
+.btn-cancel{flex:1;padding:12px;border-radius:12px;border:1.5px solid #ddd;background:#fff;font-size:14px;cursor:pointer;color:#666}
+.btn-save{flex:2;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#1565C0,#1976D2);color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+.add-btn{width:100%;padding:10px;border-radius:10px;border:2px dashed #E3EAF2;background:transparent;color:#1565C0;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
+.tipo-row{display:flex;gap:6px;margin-bottom:4px}
+.tipo-btn{flex:1;padding:9px;border-radius:10px;border:2px solid #E3EAF2;background:#fff;font-size:12px;font-weight:600;cursor:pointer;text-align:center}
+.tipo-btn.active-saida{background:#FFEBEE;color:#C62828;border-color:#C62828}
+.tipo-btn.active-entrada{background:#E8F5E9;color:#2E7D32;border-color:#4CAF50}
+
+.loading{text-align:center;padding:40px;color:#aaa;font-size:14px}
+.empty-state{text-align:center;padding:28px;color:#bbb}
+.empty-icon{font-size:30px;margin-bottom:6px}
+.empty-text{font-size:13px}
+
+.toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(10px);background:#1A2B3C;color:#fff;padding:9px 16px;border-radius:16px;font-size:12px;opacity:0;transition:all .3s;pointer-events:none;z-index:300;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.user-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.2);border-radius:12px;padding:3px 10px;font-size:11px;margin-bottom:10px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" style="display:none">
+  <div class="login-screen">
+    <div class="login-icon">💼</div>
+    <div class="login-title">Financeiro CEO</div>
+    <div class="login-sub">Entre com seu nome para acessar o painel compartilhado com sua equipe</div>
+    <input class="login-input" id="login-nome" placeholder="Seu nome (ex: Giselle ou Maria Luiza)" maxlength="30"/>
+    <input class="login-input" id="login-senha" type="password" placeholder="Senha da empresa" maxlength="20"/>
+    <button class="login-btn" onclick="fazerLogin()">Entrar →</button>
+    <div class="login-hint">⚡ Dados sincronizados em tempo real entre todos os celulares</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" style="display:none">
+  <div class="header">
+    <div class="header-eyebrow">Controle Financeiro</div>
+    <div class="header-title">💼 CEO Financeiro</div>
+    <div id="user-badge-header"></div>
+    <div class="nav-scroll">
+      <button class="nav-btn active" onclick="setView('dashboard')">📊 Dashboard</button>
+      <button class="nav-btn" onclick="setView('lancamentos')">📋 Lançamentos</button>
+      <button class="nav-btn" onclick="setView('promotoras')">👩 Promotoras</button>
+      <button class="nav-btn" onclick="setView('dre')">📈 DRE</button>
+    </div>
+  </div>
+
+  <div id="view-dashboard" style="display:none">
+    <div class="section">
+      <div class="month-sel">
+        <button class="month-nav" onclick="prevMonth()">‹</button>
+        <div class="month-label" id="dash-month"></div>
+        <button class="month-nav" onclick="nextMonth()">›</button>
+      </div>
+      <div class="sync-bar"><div class="sync-dot" id="sync-dot"></div><span id="sync-txt">Conectado — dados em tempo real</span></div>
+      <div class="row2">
+        <div class="stat-card"><div class="stat-num" id="d-entradas" style="color:#2E7D32">R$ 0</div><div class="stat-label">Entradas</div></div>
+        <div class="stat-card"><div class="stat-num" id="d-saidas" style="color:#C62828">R$ 0</div><div class="stat-label">Saídas</div></div>
+      </div>
+      <div class="row3">
+        <div class="stat-card"><div class="stat-num" id="d-saldo" style="color:#1565C0">R$ 0</div><div class="stat-label">Saldo</div></div>
+        <div class="stat-card"><div class="stat-num" id="d-pendentes" style="color:#E65100">0</div><div class="stat-label">Pendentes</div></div>
+        <div class="stat-card"><div class="stat-num" id="d-vencidos" style="color:#B71C1C">0</div><div class="stat-label">Vencidos</div></div>
+      </div>
+      <div class="card"><div class="card-title">📂 Gastos por categoria</div><div id="dash-cats"></div></div>
+      <div class="card"><div class="card-title">⚠️ Pendentes & Vencidos</div><div id="dash-pendentes"></div></div>
+    </div>
+  </div>
+
+  <div id="view-lancamentos" style="display:none">
+    <div class="section">
+      <div class="month-sel">
+        <button class="month-nav" onclick="prevMonth()">‹</button>
+        <div class="month-label" id="lanc-month"></div>
+        <button class="month-nav" onclick="nextMonth()">›</button>
+      </div>
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none" id="cat-filter-bar"></div>
+      <div id="lancamentos-list"></div>
+    </div>
+  </div>
+
+  <div id="view-promotoras" style="display:none">
+    <div class="section">
+      <div class="month-sel">
+        <button class="month-nav" onclick="prevMonth()">‹</button>
+        <div class="month-label" id="prom-month"></div>
+        <button class="month-nav" onclick="nextMonth()">›</button>
+      </div>
+      <div class="card" style="background:#E3F2FD;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;color:#1565C0;font-weight:600">💰 Total promotoras</span>
+          <span style="font-size:16px;font-weight:700;color:#1565C0" id="prom-total-mes">R$ 0,00</span>
+        </div>
+      </div>
+      <div id="promotoras-list"></div>
+      <button class="add-btn" onclick="openPromoModal()">+ Adicionar Promotora</button>
+    </div>
+  </div>
+
+  <div id="view-dre" style="display:none">
+    <div class="section">
+      <div class="month-sel">
+        <button class="month-nav" onclick="prevMonth()">‹</button>
+        <div class="month-label" id="dre-month"></div>
+        <button class="month-nav" onclick="nextMonth()">›</button>
+      </div>
+      <div class="card"><div class="card-title">📈 DRE — Demonstrativo de Resultado</div><div id="dre-content"></div></div>
+      <div class="card"><div class="card-title">📊 Histórico 6 meses</div><div id="dre-historico"></div></div>
+    </div>
+  </div>
+
+  <button class="fab" id="fab" onclick="fabClick()">+</button>
+</div>
+
+<div class="modal-overlay" id="modal" style="display:none" onclick="overlayClick(event)">
+  <div class="modal-sheet" id="modal-sheet"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// FIREBASE CONFIG — banco de dados gratuito
+// ═══════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDemo_SUBSTITUA_PELA_SUA_KEY",
+  authDomain: "SUBSTITUA.firebaseapp.com",
+  projectId: "SUBSTITUA-PELO-SEU-PROJECT-ID",
+  storageBucket: "SUBSTITUA.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "SUBSTITUA"
+};
+
+// SENHA DO APP — mude para a senha que quiser
+const SENHA_APP = "cosmeticos2024";
+const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const CATS=[
+  {id:'industria',label:'🏭 Indústria',color:'#1565C0'},
+  {id:'grafica',label:'🖨️ Gráfica',color:'#6A1B9A'},
+  {id:'sache',label:'🧴 Sachê/Embalagem',color:'#00695C'},
+  {id:'promotoras',label:'👩 Promotoras',color:'#AD1457'},
+  {id:'passagens',label:'🚌 Passagens',color:'#E65100'},
+  {id:'salarios',label:'👥 Salários',color:'#2E7D32'},
+  {id:'boletos',label:'📄 Boletos',color:'#1976D2'},
+  {id:'impostos',label:'🏛️ Impostos',color:'#4527A0'},
+  {id:'outros',label:'📦 Outros',color:'#546E7A'},
+  {id:'vendas',label:'💚 Vendas/Entradas',color:'#2E7D32'},
+];
+
+let db, currentUser='', currentView='dashboard';
+let currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
+let lancamentos=[], promotoras=[], catFilter='todas', selectedTipo='saida', editId=null;
+let unsubLanc=null, unsubProm=null;
+
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function catOf(id){return CATS.find(c=>c.id===id)||{label:id,color:'#546E7A'};}
+function fmtMoney(v){return'R$ '+parseFloat(v||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+function shortMoney(v){const n=parseFloat(v||0);if(Math.abs(n)>=1000)return'R$'+(n/1000).toFixed(1).replace('.',',')+'k';return'R$'+n.toFixed(0);}
+function isVencido(l){
+  if(l.status==='pago'||l.status==='recebido')return false;
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  return l.data&&new Date(l.data+'T00:00:00')<hoje;
+}
+function getLancMes(){
+  return lancamentos.filter(l=>{
+    if(!l.data)return false;
+    const d=new Date(l.data+'T00:00:00');
+    return d.getMonth()===currentMonth&&d.getFullYear()===currentYear;
+  });
+}
+function monthLabel(){return MESES[currentMonth]+' '+currentYear;}
+
+// ── LOGIN ──
+function initLogin(){
+  document.getElementById('login-screen').style.display='';
+  document.getElementById('app-screen').style.display='none';
+  const saved=localStorage.getItem('ceo_fin_user');
+  if(saved){currentUser=saved;initApp();}
+}
+
+function fazerLogin(){
+  const nome=document.getElementById('login-nome').value.trim();
+  const senha=document.getElementById('login-senha').value.trim();
+  if(!nome){showToast('Digite seu nome!');return;}
+  if(senha!==SENHA_APP){showToast('Senha incorreta!');return;}
+  currentUser=nome;
+  localStorage.setItem('ceo_fin_user',nome);
+  initApp();
+}
+
+// ── FIREBASE INIT ──
+function initApp(){
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db=firebase.firestore();
+    setSyncStatus(true);
+  }catch(e){
+    // Se Firebase não configurado, usa modo local
+    console.warn('Firebase não configurado, usando modo local');
+    db=null;
+    setSyncStatus(false);
+  }
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-screen').style.display='';
+  document.getElementById('user-badge-header').innerHTML=`<div class="user-badge" onclick="sair()">👤 ${escH(currentUser)} · Sair</div>`;
+  startListeners();
+  setView('dashboard');
+}
+
+function setSyncStatus(online){
+  const dot=document.getElementById('sync-dot');
+  const txt=document.getElementById('sync-txt');
+  if(!dot)return;
+  if(online){dot.className='sync-dot';txt.textContent='Conectado — dados em tempo real';}
+  else{dot.className='sync-dot offline';txt.textContent='Modo local (configure Firebase para sincronizar)';}
+}
+
+function sair(){
+  if(!confirm('Sair?'))return;
+  localStorage.removeItem('ceo_fin_user');
+  if(unsubLanc)unsubLanc();if(unsubProm)unsubProm();
+  location.reload();
+}
+
+// ── LISTENERS TEMPO REAL ──
+function startListeners(){
+  if(!db){
+    // modo local
+    try{const s=localStorage.getItem('ceo_fin_local');if(s){const d=JSON.parse(s);lancamentos=d.lancamentos||[];promotoras=d.promotoras||[];}}catch(e){}
+    renderAll();return;
+  }
+  if(unsubLanc)unsubLanc();
+  if(unsubProm)unsubProm();
+  unsubLanc=db.collection('lancamentos').orderBy('criadoEm','desc').onSnapshot(snap=>{
+    lancamentos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderAll();
+  },err=>{console.error(err);setSyncStatus(false);});
+  unsubProm=db.collection('promotoras').orderBy('nome').onSnapshot(snap=>{
+    promotoras=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentView==='promotoras')renderPromotoras();
+  });
+}
+
+function saveLocal(){
+  localStorage.setItem('ceo_fin_local',JSON.stringify({lancamentos,promotoras}));
+}
+
+// ── VIEWS ──
+function setView(v){
+  currentView=v;
+  ['dashboard','lancamentos','promotoras','dre'].forEach(x=>{
+    document.getElementById('view-'+x).style.display=x===v?'':'none';
+  });
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['dashboard','lancamentos','promotoras','dre'][i]===v);
+  });
+  document.getElementById('fab').style.display=v==='dre'?'none':'flex';
+  renderAll();
+}
+function fabClick(){
+  if(currentView==='promotoras')openPromoModal();
+  else openLancModal();
+}
+function prevMonth(){currentMonth--;if(currentMonth<0){currentMonth=11;currentYear--;}renderAll();}
+function nextMonth(){currentMonth++;if(currentMonth>11){currentMonth=0;currentYear++;}renderAll();}
+
+function renderAll(){
+  if(currentView==='dashboard')renderDash();
+  else if(currentView==='lancamentos')renderLancamentos();
+  else if(currentView==='promotoras')renderPromotoras();
+  else if(currentView==='dre')renderDRE();
+}
+
+// ── DASHBOARD ──
+function renderDash(){
+  document.getElementById('dash-month').textContent=monthLabel();
+  const lancs=getLancMes();
+  const entradas=lancs.filter(l=>l.tipo==='entrada').reduce((s,l)=>s+parseFloat(l.valor||0),0);
+  const saidas=lancs.filter(l=>l.tipo==='saida').reduce((s,l)=>s+parseFloat(l.valor||0),0);
+  const saldo=entradas-saidas;
+  const pendentes=lancs.filter(l=>l.tipo==='saida'&&l.status==='pendente'&&!isVencido(l)).length;
+  const vencidos=lancs.filter(l=>l.tipo==='saida'&&isVencido(l)).length;
+
+  document.getElementById('d-entradas').textContent=shortMoney(entradas);
+  document.getElementById('d-saidas').textContent=shortMoney(saidas);
+  const ds=document.getElementById('d-saldo');ds.textContent=shortMoney(saldo);ds.style.color=saldo>=0?'#2E7D32':'#C62828';
+  document.getElementById('d-pendentes').textContent=pendentes;
+  document.getElementById('d-vencidos').textContent=vencidos;
+
+  const saiCats=CATS.filter(c=>c.id!=='vendas').map(c=>({...c,val:lancs.filter(l=>l.categoria===c.id&&l.tipo==='saida').reduce((s,l)=>s+parseFloat(l.valor||0),0)})).filter(c=>c.val>0).sort((a,b)=>b.val-a.val);
+  const maxV=Math.max(...saiCats.map(c=>c.val),1);
+  const cd=document.getElementById('dash-cats');
+  cd.innerHTML=saiCats.length?saiCats.map(c=>`<div class="cat-bar-row"><div class="cat-bar-meta"><span class="cat-bar-name">${c.label}</span><span class="cat-bar-val">${fmtMoney(c.val)}</span></div><div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${Math.round(c.val/maxV*100)}%;background:${c.color}"></div></div></div>`).join(''):'<div style="color:#bbb;font-size:13px;text-align:center;padding:10px">Nenhum gasto este mês.</div>';
+
+  const urgentes=lancs.filter(l=>l.tipo==='saida'&&(l.status==='pendente'||isVencido(l))).sort((a,b)=>new Date(a.data)-new Date(b.data));
+  const pd=document.getElementById('dash-pendentes');
+  pd.innerHTML=urgentes.length?urgentes.slice(0,6).map(l=>{
+    const venc=isVencido(l);const cat=catOf(l.categoria);const dp=(l.data||'').split('-');
+    return`<div class="lancamento-item"><div class="lanc-icon" style="background:${cat.color}18">${cat.label.split(' ')[0]}</div><div class="lanc-body"><div class="lanc-desc">${escH(l.descricao)}</div><div class="lanc-meta"><span>${dp[2]}/${dp[1]}/${dp[0]}</span><span class="lanc-tag" style="background:${venc?'#FFEBEE':'#FFF3E0'};color:${venc?'#B71C1C':'#E65100'}">${venc?'VENCIDO':'PENDENTE'}</span></div></div><div class="lanc-val"><div class="lanc-val-num" style="color:#C62828">${fmtMoney(l.valor)}</div><button onclick="marcarPago('${l.id}')" style="background:#E8F5E9;border:none;border-radius:6px;font-size:10px;color:#2E7D32;padding:2px 6px;cursor:pointer;margin-top:3px;white-space:nowrap">✓ Pago</button></div></div>`;
+  }).join(''):'<div style="color:#bbb;font-size:13px;text-align:center;padding:10px">✅ Nada pendente!</div>';
+}
+
+// ── LANÇAMENTOS ──
+function renderLancamentos(){
+  document.getElementById('lanc-month').textContent=monthLabel();
+  const fb=document.getElementById('cat-filter-bar');
+  const filtros=[{id:'todas',label:'Todas',cor:'#546E7A'},{id:'entrada',label:'💚 Entradas',cor:'#2E7D32'},{id:'saida',label:'💸 Saídas',cor:'#C62828'},...CATS];
+  fb.innerHTML=filtros.map(f=>{
+    const active=catFilter===f.id;
+    return`<button style="flex:0 0 auto;background:${active?(f.cor||f.color):'#EEF2F7'};color:${active?'#fff':'#555'};border:none;border-radius:16px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap" onclick="setCatFilter('${f.id}')">${f.label||f.id}</button>`;
+  }).join('');
+
+  let lancs=getLancMes();
+  if(catFilter==='entrada')lancs=lancs.filter(l=>l.tipo==='entrada');
+  else if(catFilter==='saida')lancs=lancs.filter(l=>l.tipo==='saida');
+  else if(catFilter!=='todas')lancs=lancs.filter(l=>l.categoria===catFilter);
+  lancs=lancs.sort((a,b)=>new Date(b.data||0)-new Date(a.data||0));
+
+  const c=document.getElementById('lancamentos-list');
+  if(!lancs.length){c.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Nenhum lançamento neste período.</div></div>';return;}
+  c.innerHTML=lancs.map(l=>{
+    const ent=l.tipo==='entrada';const cat=catOf(l.categoria);
+    const venc=isVencido(l);const pago=l.status==='pago'||l.status==='recebido';
+    const stLabel=pago?(ent?'Recebido':'Pago'):venc?'Vencido':'Pendente';
+    const stClass=pago?(ent?'status-recebido':'status-pago'):venc?'status-vencido':'status-pendente';
+    const dp=(l.data||'').split('-');
+    return`<div class="lancamento-item">
+      <div class="lanc-icon" style="background:${ent?'#E8F5E9':'#FFEBEE'}">${ent?'💚':'💸'}</div>
+      <div class="lanc-body">
+        <div class="lanc-desc">${escH(l.descricao)}</div>
+        <div class="lanc-meta"><span>${dp[2]}/${dp[1]}/${dp[0]}</span><span class="lanc-tag" style="background:${cat.color}18;color:${cat.color}">${cat.label}</span>${l.lancadoPor?`<span>por ${escH(l.lancadoPor)}</span>`:''}</div>
+        ${l.obs?`<div style="font-size:11px;color:#aaa;margin-top:2px">${escH(l.obs)}</div>`:''}
+      </div>
+      <div class="lanc-val">
+        <div class="lanc-val-num" style="color:${ent?'#2E7D32':'#C62828'}">${ent?'+':'−'}${fmtMoney(l.valor)}</div>
+        <div style="margin-top:3px"><span class="lanc-tag ${stClass}">${stLabel}</span></div>
+        <div style="display:flex;gap:3px;justify-content:flex-end;margin-top:4px">
+          ${!pago?`<button onclick="marcarPago('${l.id}')" style="background:#E8F5E9;border:none;border-radius:5px;font-size:10px;color:#2E7D32;padding:2px 5px;cursor:pointer">✓</button>`:''}
+          <button onclick="editLanc('${l.id}')" style="background:none;border:none;font-size:12px;cursor:pointer;color:#ccc">✏️</button>
+          <button onclick="deleteLanc('${l.id}')" style="background:none;border:none;font-size:12px;cursor:pointer;color:#ccc">🗑️</button>
+        </div>
+      </div>
+    </div>`;}).join('');
+}
+
+function setCatFilter(f){catFilter=f;renderLancamentos();}
+
+function marcarPago(id){
+  const l=lancamentos.find(x=>x.id===id);if(!l)return;
+  const novoStatus=l.tipo==='entrada'?'recebido':'pago';
+  if(db){db.collection('lancamentos').doc(id).update({status:novoStatus,pago_por:currentUser,pago_em:new Date().toISOString()});}
+  else{l.status=novoStatus;saveLocal();renderAll();}
+  showToast(novoStatus==='recebido'?'✅ Marcado como recebido!':'✅ Marcado como pago!');
+}
+
+function deleteLanc(id){
+  if(!confirm('Excluir lançamento?'))return;
+  if(db){db.collection('lancamentos').doc(id).delete();}
+  else{lancamentos=lancamentos.filter(x=>x.id!==id);saveLocal();renderAll();}
+  showToast('🗑️ Excluído.');
+}
+
+function editLanc(id){const l=lancamentos.find(x=>x.id===id);if(l)openLancModal(l);}
+
+// ── PROMOTORAS ──
+function renderPromotoras(){
+  document.getElementById('prom-month').textContent=monthLabel();
+  const mesKey=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+  let totalMes=0;
+  promotoras.forEach(p=>{(p.pagamentos||[]).filter(pg=>pg.mesRef===mesKey).forEach(pg=>totalMes+=parseFloat(pg.valor||0));});
+  document.getElementById('prom-total-mes').textContent=fmtMoney(totalMes);
+
+  const c=document.getElementById('promotoras-list');
+  if(!promotoras.length){c.innerHTML='<div class="empty-state"><div class="empty-icon">👩</div><div class="empty-text">Nenhuma promotora cadastrada.</div></div>';return;}
+  c.innerHTML=promotoras.map(p=>{
+    const pgtos=(p.pagamentos||[]).filter(pg=>pg.mesRef===mesKey);
+    const total=pgtos.reduce((s,pg)=>s+parseFloat(pg.valor||0),0);
+    return`<div class="promotora-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div><div class="promotora-nome">👩 ${escH(p.nome)}</div>${p.cidade?`<div style="font-size:11px;color:#888;margin-top:1px">📍 ${escH(p.cidade)}</div>`:''}</div>
+        <div style="text-align:right"><div style="font-size:15px;font-weight:700;color:#1565C0">${fmtMoney(total)}</div><div style="font-size:10px;color:#888">este mês</div><button onclick="deletePromotora('${p.id}')" style="background:none;border:none;font-size:12px;cursor:pointer;color:#ddd">🗑️</button></div>
+      </div>
+      ${pgtos.map(pg=>`<div class="pgto-row">
+        <button class="check-box${pg.pago?' checked':''}" onclick="togglePgto('${p.id}','${pg.id}')">${pg.pago?'✓':''}</button>
+        <div class="pgto-label${pg.pago?' done':''}">${escH(pg.tipo)}</div>
+        <div class="pgto-val">${fmtMoney(pg.valor)}</div>
+        <button onclick="deletePgto('${p.id}','${pg.id}')" style="background:none;border:none;font-size:12px;cursor:pointer;color:#ddd;margin-left:4px">✕</button>
+      </div>`).join('')}
+      ${!pgtos.length?'<div style="color:#bbb;font-size:12px;padding:4px 0">Nenhum pagamento este mês.</div>':''}
+      <button class="add-btn" style="margin-top:6px" onclick="openPgtoModal('${p.id}')">+ Adicionar pagamento</button>
+    </div>`;}).join('');
+}
+
+function togglePgto(pid,pgid){
+  const p=promotoras.find(x=>x.id===pid);if(!p)return;
+  const pgs=(p.pagamentos||[]);const pg=pgs.find(x=>x.id===pgid);if(!pg)return;
+  pg.pago=!pg.pago;
+  if(db){db.collection('promotoras').doc(pid).update({pagamentos:pgs});}
+  else{saveLocal();}
+  renderPromotoras();
+  if(pg.pago)showToast('✅ Pago!');
+}
+
+function deletePgto(pid,pgid){
+  const p=promotoras.find(x=>x.id===pid);if(!p)return;
+  p.pagamentos=(p.pagamentos||[]).filter(x=>x.id!==pgid);
+  if(db){db.collection('promotoras').doc(pid).update({pagamentos:p.pagamentos});}
+  else{saveLocal();}
+  renderPromotoras();
+}
+
+function deletePromotora(id){
+  if(!confirm('Excluir promotora?'))return;
+  if(db){db.collection('promotoras').doc(id).delete();}
+  else{promotoras=promotoras.filter(x=>x.id!==id);saveLocal();renderPromotoras();}
+}
+
+// ── DRE ──
+function renderDRE(){
+  document.getElementById('dre-month').textContent=monthLabel();
+  const lancs=getLancMes();
+  const entradas=lancs.filter(l=>l.tipo==='entrada').reduce((s,l)=>s+parseFloat(l.valor||0),0);
+  const cats=CATS.filter(c=>c.id!=='vendas').map(c=>({...c,val:lancs.filter(l=>l.categoria===c.id&&l.tipo==='saida').reduce((s,l)=>s+parseFloat(l.valor||0),0)})).filter(c=>c.val>0);
+  const totalS=cats.reduce((s,c)=>s+c.val,0);
+  const res=entradas-totalS;
+
+  document.getElementById('dre-content').innerHTML=`
+    <div class="dre-section-title">RECEITAS</div>
+    <div class="dre-linha"><span>💚 Vendas / Entradas</span><span style="color:#2E7D32;font-weight:700">${fmtMoney(entradas)}</span></div>
+    <div class="dre-section-title">DESPESAS</div>
+    ${cats.map(c=>`<div class="dre-linha"><span>${catOf(c.id).label}</span><span style="color:#C62828;font-weight:700">${fmtMoney(c.val)}</span></div>`).join('')}
+    ${!cats.length?'<div style="color:#bbb;font-size:13px;padding:6px 0">Nenhuma despesa.</div>':''}
+    <div class="dre-linha"><span style="font-weight:700">Total Despesas</span><span style="color:#C62828;font-weight:700">${fmtMoney(totalS)}</span></div>
+    <div class="dre-linha total"><span style="font-weight:700;font-size:14px">RESULTADO</span><span style="font-size:16px;font-weight:700;color:${res>=0?'#2E7D32':'#C62828'}">${res>=0?'+':''}${fmtMoney(res)}</span></div>`;
+
+  const hist=[];
+  for(let i=5;i>=0;i--){let m=currentMonth-i,y=currentYear;while(m<0){m+=12;y--;}
+    const ml=lancamentos.filter(l=>{if(!l.data)return false;const d=new Date(l.data+'T00:00:00');return d.getMonth()===m&&d.getFullYear()===y;});
+    const e=ml.filter(l=>l.tipo==='entrada').reduce((s,l)=>s+parseFloat(l.valor||0),0);
+    const s=ml.filter(l=>l.tipo==='saida').reduce((s,l)=>s+parseFloat(l.valor||0),0);
+    hist.push({label:MESES[m].substring(0,3)+'/'+String(y).slice(2),e,s,r:e-s});}
+  document.getElementById('dre-historico').innerHTML=`
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:#999;margin-bottom:6px;padding:0 2px"><span>Mês</span><span>Entradas</span><span>Saídas</span><span>Resultado</span></div>`+
+    hist.map(h=>`<div class="dre-linha" style="font-size:12px"><span style="font-weight:600">${h.label}</span><span style="color:#2E7D32">${shortMoney(h.e)}</span><span style="color:#C62828">${shortMoney(h.s)}</span><span style="font-weight:700;color:${h.r>=0?'#2E7D32':'#C62828'}">${h.r>=0?'+':''}${shortMoney(h.r)}</span></div>`).join('');
+}
+
+// ── MODAIS ──
+function openModal(html){document.getElementById('modal-sheet').innerHTML=html;document.getElementById('modal').style.display='flex';}
+function closeModal(){document.getElementById('modal').style.display='none';editId=null;selectedTipo='saida';}
+function overlayClick(e){if(e.target===document.getElementById('modal'))closeModal();}
+
+function openLancModal(lanc){
+  const isEdit=!!lanc;
+  if(isEdit){selectedTipo=lanc.tipo||'saida';editId=lanc.id;}else{selectedTipo='saida';}
+  const hoje=new Date().toISOString().split('T')[0];
+  const catOpts=CATS.map(c=>`<option value="${c.id}"${(isEdit?lanc.categoria:'industria')===c.id?' selected':''}>${c.label}</option>`).join('');
+  const stOpts=['pendente','pago','recebido'].map(s=>`<option value="${s}"${(isEdit?lanc.status:'pendente')===s?' selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('');
+  openModal(`<div class="modal-title">${isEdit?'✏️ Editar':'➕ Novo'} Lançamento</div>
+    <div class="form-group"><div class="tipo-row">
+      <button class="tipo-btn${selectedTipo==='saida'?' active-saida':''}" onclick="setTipo('saida')">💸 Saída</button>
+      <button class="tipo-btn${selectedTipo==='entrada'?' active-entrada':''}" onclick="setTipo('entrada')">💚 Entrada</button>
+    </div></div>
+    <div class="form-group"><label class="form-label">Descrição *</label><input class="form-input" id="m-desc" value="${isEdit?escH(lanc.descricao||''):''}" placeholder="Ex: Boleto Indústria Abc"/></div>
+    <div class="form-group"><label class="form-label">Valor (R$) *</label><input class="form-input" type="number" id="m-val" value="${isEdit?lanc.valor:''}" placeholder="0.00" step="0.01"/></div>
+    <div class="form-group"><label class="form-label">Data *</label><input class="form-input" type="date" id="m-data" value="${isEdit?(lanc.data||hoje):hoje}"/></div>
+    <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="m-cat">${catOpts}</select></div>
+    <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="m-status">${stOpts}</select></div>
+    <div class="form-group"><label class="form-label">Observação</label><input class="form-input" id="m-obs" value="${isEdit?escH(lanc.obs||''):''}" placeholder="Ex: Referente ao pedido #123"/></div>
+    <div class="btn-row"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="saveLanc()">Salvar</button></div>`);
+}
+
+function setTipo(t){
+  selectedTipo=t;
+  document.querySelectorAll('.tipo-btn').forEach((b,i)=>{
+    b.className='tipo-btn'+(i===0&&t==='saida'?' active-saida':i===1&&t==='entrada'?' active-entrada':'');
+  });
+}
+
+function saveLanc(){
+  const desc=document.getElementById('m-desc').value.trim();
+  const val=document.getElementById('m-val').value;
+  const dt=document.getElementById('m-data').value;
+  if(!desc||!val||!dt){showToast('Preencha todos os campos!');return;}
+  const obj={descricao:desc,valor:parseFloat(val),data:dt,tipo:selectedTipo,categoria:document.getElementById('m-cat').value,status:document.getElementById('m-status').value,obs:document.getElementById('m-obs').value.trim(),lancadoPor:currentUser,criadoEm:new Date().toISOString()};
+  if(db){
+    if(editId){db.collection('lancamentos').doc(editId).update(obj);showToast('✅ Atualizado!');}
+    else{db.collection('lancamentos').add(obj);showToast('✅ Lançamento salvo!');}
+  }else{
+    if(editId){const l=lancamentos.find(x=>x.id===editId);if(l)Object.assign(l,obj);}
+    else{lancamentos.unshift({...obj,id:'l'+Date.now()});}
+    saveLocal();renderAll();showToast('✅ Salvo localmente!');
+  }
+  closeModal();
+}
+
+function openPromoModal(){
+  openModal(`<div class="modal-title">👩 Nova Promotora</div>
+    <div class="form-group"><label class="form-label">Nome *</label><input class="form-input" id="m-pnom" placeholder="Nome da promotora"/></div>
+    <div class="form-group"><label class="form-label">Cidade</label><input class="form-input" id="m-pcid" placeholder="Ex: São Paulo - SP"/></div>
+    <div class="btn-row"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="savePromotora()">Cadastrar</button></div>`);
+  setTimeout(()=>document.getElementById('m-pnom').focus(),300);
+}
+
+function savePromotora(){
+  const nome=document.getElementById('m-pnom').value.trim();if(!nome){showToast('Digite o nome!');return;}
+  const obj={nome,cidade:document.getElementById('m-pcid').value.trim(),pagamentos:[],criadoEm:new Date().toISOString()};
+  if(db){db.collection('promotoras').add(obj);}
+  else{promotoras.push({...obj,id:'p'+Date.now()});saveLocal();renderPromotoras();}
+  closeModal();showToast('👩 Promotora cadastrada!');
+}
+
+function openPgtoModal(pid){
+  const mesRef=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+  openModal(`<div class="modal-title">💰 Pagamento</div>
+    <div class="form-group"><label class="form-label">Tipo *</label>
+      <select class="form-select" id="m-pgtp">
+        <option>Salário / Comissão</option><option>Passagem</option><option>Vale transporte</option><option>Adiantamento</option><option>Bônus</option><option>Outros</option>
+      </select></div>
+    <div class="form-group"><label class="form-label">Valor (R$) *</label><input class="form-input" type="number" id="m-pgval" placeholder="0.00" step="0.01"/></div>
+    <div class="form-group"><label class="form-label">Observação</label><input class="form-input" id="m-pgobs" placeholder="Ex: Referente a outubro"/></div>
+    <div class="btn-row"><button class="btn-cancel" onclick="closeModal()">Cancelar</button><button class="btn-save" onclick="savePgto('${pid}','${mesRef}')">Salvar</button></div>`);
+}
+
+function savePgto(pid,mesRef){
+  const val=document.getElementById('m-pgval').value;if(!val){showToast('Digite o valor!');return;}
+  const p=promotoras.find(x=>x.id===pid);if(!p)return;
+  const pg={id:'pg'+Date.now(),tipo:document.getElementById('m-pgtp').value,valor:parseFloat(val),obs:document.getElementById('m-pgobs').value.trim(),mesRef,pago:false,lancadoPor:currentUser};
+  const pgs=[...(p.pagamentos||[]),pg];
+  if(db){db.collection('promotoras').doc(pid).update({pagamentos:pgs});}
+  else{p.pagamentos=pgs;saveLocal();renderPromotoras();}
+  closeModal();showToast('✅ Pagamento salvo!');
+}
+
+// START
+initLogin();
+</script>
+</body>
+</html>
